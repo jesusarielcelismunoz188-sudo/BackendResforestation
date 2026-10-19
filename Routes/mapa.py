@@ -129,8 +129,6 @@ def obtener_zonas_mapa(
 
         cur.execute(query, params)
         zonas = cur.fetchall()
-
-        # Armar GeoJSON FeatureCollection
         features = []
         for zona in zonas:
             features.append({
@@ -160,8 +158,6 @@ def crear_zona_mapa(lote_id: str, body: ZonaMapaCreate):
     conn = get_connection()
     try:
         cur = conn.cursor()
-
-        # Convertir el GeoJSON a texto para ST_GeomFromGeoJSON
         geom_json = json.dumps(body.geom)
 
         cur.execute("""
@@ -198,8 +194,6 @@ def actualizar_zona_mapa(zona_id: str, body: ZonaMapaUpdate):
     conn = get_connection()
     try:
         cur = conn.cursor()
-
-        # Construir la query dinámicamente solo con los campos enviados
         campos = []
         valores = []
 
@@ -296,8 +290,6 @@ def generar_franja_riparia(lote_id: str):
     conn = get_connection()
     try:
         cur = conn.cursor()
-
-        # Obtener el ancho de franja del diagnóstico vigente
         cur.execute("""
             SELECT franja_riparia_legal_m
             FROM diagnosticos_lote
@@ -307,10 +299,6 @@ def generar_franja_riparia(lote_id: str):
         """, (str(lote_id),))
         diag = cur.fetchone()
         ancho_m = diag["franja_riparia_legal_m"] if diag and diag["franja_riparia_legal_m"] else 30
-
-        # Generar buffer sobre la geometría del lote
-        # ST_Buffer con geometría en grados → convertimos metros a grados aprox
-        # 1 grado ≈ 111,320 metros en el ecuador
         ancho_grados = ancho_m / 111320.0
 
         cur.execute("""

@@ -24,9 +24,7 @@ from fastapi import APIRouter, HTTPException, Query
 from Models.schemas import DiagnosticoCreate
 from Services import diagnostico_service
 
-# Crear el router con un prefijo y tag para la documentación
 router = APIRouter(tags=["Diagnósticos"])
-
 
 # ══════════════════════════════════════════════
 # POST /lotes/{lote_id}/diagnosticos
@@ -50,7 +48,6 @@ def crear_diagnostico(lote_id: str, body: DiagnosticoCreate):
         resultado = diagnostico_service.crear_diagnostico(lote_id, body)
         return resultado
     except ValueError as e:
-        # Error de validación de negocio (lote no existe, régimen inválido, etc.)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")

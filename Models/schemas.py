@@ -19,9 +19,6 @@ from uuid import UUID
 
 class DiagnosticoCreate(BaseModel):
     """
-    Body del POST /lotes/:id/diagnosticos
-
-    Ejemplo:
     {
         "muestra_suelo_id": "uuid-de-la-muestra",
         "perdida_cobertura_pct": 35,
@@ -63,9 +60,6 @@ class DiagnosticoCreate(BaseModel):
 
 class ZonaMapaCreate(BaseModel):
     """
-    Body del POST /lotes/:id/zonas-mapa
-
-    Ejemplo:
     {
         "tipo": "franja_riparia",
         "etiqueta": "Franja río principal",
@@ -85,3 +79,41 @@ class ZonaMapaUpdate(BaseModel):
     tipo: Optional[str] = None
     etiqueta: Optional[str] = None
     geom: Optional[dict] = None
+
+
+# ══════════════════════════════════════════════
+# HU-16: PROYECTOS Y SELECCIÓN DE ESPECIES
+# ══════════════════════════════════════════════
+
+class ProyectoCreate(BaseModel):
+    """
+    Body del POST /lotes/:id/proyectos
+    """
+    nombre: str = Field(..., min_length=2, description="Nombre descriptivo del proyecto")
+    diagnostico_id: Optional[UUID] = Field(None, description="Diagnóstico vigente asociado (si es null se busca el último)")
+    vivero_id: Optional[UUID] = Field(None, description="Vivero seleccionado para suministro de plántulas")
+    responsable_id: Optional[UUID] = None
+    fecha_inicio: Optional[str] = Field(None, description="Fecha tentativa de inicio (YYYY-MM-DD)")
+    patron: Optional[str] = Field("tresbolillo", description="tresbolillo | cuadrado | rectangular")
+    espaciado_m: Optional[float] = Field(3.0, gt=0, description="Distancia entre plántulas en metros")
+    area_restaurada_m2: Optional[float] = Field(None, gt=0, description="Área meta a restaurar en m²")
+    hoyo_lado_cm: Optional[int] = Field(40, gt=0, description="Ancho del hoyo de siembra en cm")
+    hoyo_profundidad_cm: Optional[int] = Field(40, gt=0, description="Profundidad del hoyo de siembra en cm")
+
+
+class EspecieSeleccionItem(BaseModel):
+    """
+    Elemento individual de selección de especie para el proyecto.
+    """
+    especie_id: UUID = Field(..., description="UUID de la especie seleccionada")
+    zona_plantacion: str = Field(..., description="Código (ej: dosel_alto, ripario, borde) o ID de la zona")
+    cantidad: int = Field(..., gt=0, description="Número de plántulas a sembrar (> 0)")
+
+
+class FichaExportCreate(BaseModel):
+    """
+    Body opcional del POST /especies/:id/ficha-tecnica
+    """
+    url: Optional[str] = Field(None, description="URL pública del documento si ya fue generado")
+    generado_por: Optional[UUID] = None
+
