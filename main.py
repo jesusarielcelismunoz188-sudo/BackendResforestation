@@ -8,10 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from Routes.home import router as home_router
 from Routes.diagnosticos import router as diagnosticos_router
 from Routes.mapa import router as mapa_router
+from Routes.especies import router as especies_router
+from Routes.proyectos import router as proyectos_router
 
 app = FastAPI(
     title="Reforest API",
-    description="API para el sistema de reforestación — Diagnóstico y planificación de siembra",
+    description="API para el sistema de reforestación — Diagnóstico, especies y planificación de siembra",
     version="1.0.0",
 )
 
@@ -27,3 +29,6 @@ app.add_middleware(
 app.include_router(home_router)
 app.include_router(diagnosticos_router)
 app.include_router(mapa_router)
+app.include_router(especies_router)
+app.include_router(proyectos_router)
+
