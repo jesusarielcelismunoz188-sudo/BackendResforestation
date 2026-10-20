@@ -117,3 +117,11 @@ class FichaExportCreate(BaseModel):
     url: Optional[str] = Field(None, description="URL pública del documento si ya fue generado")
     generado_por: Optional[UUID] = None
 
+class registroCuenca(BaseModel):
+
+    nombre: str = Field(..., min_length=2, description="Nombre de su cuenca")
+    descripcion: Optional[str] = Field(None, description="Descripción de la cuenca")
+    elevacion_msnm: Optional[int] = Field(None, description="Elevación media de la cuenca en metros sobre el nivel del mar")
+    altitud_min_msnm: Optional[int] = Field(None, description="Altitud minima de la cuenca en metros sobre el nivel del mar")
+    altitud_max_msnm: Optional[int] = Field(None, description="Altitud máxima de la cuenca en metros sobre el nivel del mar")
+    geom: dict = Field(..., description="Geometría en formato GeoJSON")
