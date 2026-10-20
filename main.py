@@ -10,6 +10,7 @@ from Routes.diagnosticos import router as diagnosticos_router
 from Routes.mapa import router as mapa_router
 from Routes.especies import router as especies_router
 from Routes.proyectos import router as proyectos_router
+from Routes.cuencas import router as cuencas_router
 
 app = FastAPI(
     title="Reforest API",
@@ -31,4 +32,4 @@ app.include_router(diagnosticos_router)
 app.include_router(mapa_router)
 app.include_router(especies_router)
 app.include_router(proyectos_router)
-
+app.include_router(cuencas_router)
