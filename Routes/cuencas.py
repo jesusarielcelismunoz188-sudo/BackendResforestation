@@ -4,7 +4,7 @@ from Services import cuencas_service #Este es el contrador
 
 router = APIRouter(tags=["Cuencas"])
 
-@router.get("/cuencas",status_code=status.HTTP_201_CREATED) #cuencas en peticion(redireccionador)
+@router.get("/cuencas",status_code=status.HTTP_200_OK) #cuencas en peticion(redireccionador)
 async def get_cuencas(): #Recibe la petición y envia al controlador
     """
     Retorna todas las cuencas registradas en la base de datos.
