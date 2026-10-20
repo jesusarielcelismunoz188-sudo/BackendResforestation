@@ -17,3 +17,25 @@ def get_cuencas() -> List[Dict[str, Any]]:
         raise e
     finally:
         conn.close()
+
+def create_cuenca(cuenca: registroCuenca) -> None:
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO cuencas (nombre, descripcion, elevacion_msnm, altitud_min_msnm, altitud_max_msnm, geom)
+            VALUES (%s, %s, %s, %s, %s, ST_GeomFromGeoJSON(%s))
+        """, (
+            cuenca.nombre,
+            cuenca.descripcion,
+            cuenca.elevacion_msnm,
+            cuenca.altitud_min_msnm,
+            cuenca.altitud_max_msnm,
+            json.dumps(cuenca.geom)  # Convertir el dict a JSON string
+        ))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()

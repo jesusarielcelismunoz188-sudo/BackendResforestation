@@ -14,3 +14,14 @@ async def get_cuencas(): #Recibe la petición y envia al controlador
         return cuencas
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+@router.post("/cuencas", status_code=status.HTTP_201_CREATED)
+async def create_cuenca(cuenca: registroCuenca):
+    """
+    Crea una nueva cuenca en la base de datos.
+    """
+    try:
+        cuencas_service.create_cuenca(cuenca)
+        pass
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
