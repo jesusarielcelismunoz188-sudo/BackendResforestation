@@ -21,6 +21,7 @@ Las rutas aquí definidas:
 └──────────────────────────────────────────┴────────────────────────────────┘
 """
 from fastapi import APIRouter, HTTPException, Query
+from uuid import UUID
 from Models.schemas import DiagnosticoCreate
 from Services import diagnostico_service
 
@@ -30,7 +31,7 @@ router = APIRouter(tags=["Diagnósticos"])
 # POST /lotes/{lote_id}/diagnosticos
 # ══════════════════════════════════════════════
 @router.post("/lotes/{lote_id}/diagnosticos")
-def crear_diagnostico(lote_id: str, body: DiagnosticoCreate):
+def crear_diagnostico(lote_id: UUID, body: DiagnosticoCreate):
     """
     Crea un diagnóstico completo para un lote.
 
@@ -57,7 +58,7 @@ def crear_diagnostico(lote_id: str, body: DiagnosticoCreate):
 # GET /lotes/{lote_id}/diagnostico
 # ══════════════════════════════════════════════
 @router.get("/lotes/{lote_id}/diagnostico")
-def obtener_diagnostico_vigente(lote_id: str):
+def obtener_diagnostico_vigente(lote_id: UUID):
     """
     Retorna el diagnóstico más reciente (vigente) de un lote.
 
@@ -82,7 +83,7 @@ def obtener_diagnostico_vigente(lote_id: str):
 # GET /lotes/{lote_id}/diagnosticos
 # ══════════════════════════════════════════════
 @router.get("/lotes/{lote_id}/diagnosticos")
-def obtener_historial(lote_id: str):
+def obtener_historial(lote_id: UUID):
     """
     Retorna el historial de todos los diagnósticos de un lote,
     ordenados del más reciente al más antiguo.

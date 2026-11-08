@@ -17,6 +17,7 @@ Rutas definidas:
 └──────────────────────────────────────────────────┴──────────────────────────────┘
 """
 import json
+from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query
 from Config.database import get_connection, serialize_row, serialize_rows
 from Models.schemas import ZonaMapaCreate, ZonaMapaUpdate
@@ -76,7 +77,7 @@ def obtener_capas():
 # ══════════════════════════════════════════════
 @router.get("/lotes/{lote_id}/ndvi")
 def obtener_ndvi(
-    lote_id: str,
+    lote_id: UUID,
     fecha: str = Query(default=None, description="Fecha ISO (YYYY-MM-DD)")
 ):
     """
@@ -100,7 +101,7 @@ def obtener_ndvi(
 # ══════════════════════════════════════════════
 @router.get("/lotes/{lote_id}/zonas-mapa")
 def obtener_zonas_mapa(
-    lote_id: str,
+    lote_id: UUID,
     tipo: str = Query(default=None, description="Filtrar por tipo de zona")
 ):
     """
@@ -153,7 +154,7 @@ def obtener_zonas_mapa(
 # POST /lotes/{lote_id}/zonas-mapa
 # ══════════════════════════════════════════════
 @router.post("/lotes/{lote_id}/zonas-mapa")
-def crear_zona_mapa(lote_id: str, body: ZonaMapaCreate):
+def crear_zona_mapa(lote_id: UUID, body: ZonaMapaCreate):
     """Crea una nueva zona en el mapa del lote."""
     conn = get_connection()
     try:
@@ -277,7 +278,7 @@ def eliminar_zona_mapa(zona_id: str):
 # POST /lotes/{lote_id}/zonas-mapa/generar-franja
 # ══════════════════════════════════════════════
 @router.post("/lotes/{lote_id}/zonas-mapa/generar-franja")
-def generar_franja_riparia(lote_id: str):
+def generar_franja_riparia(lote_id: UUID):
     """
     Genera automáticamente la franja riparia usando ST_Buffer
     sobre el drenaje del lote.

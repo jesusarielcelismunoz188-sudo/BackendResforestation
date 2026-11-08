@@ -19,6 +19,7 @@ en fase `borrador` o `planificacion_activa`.
 """
 from fastapi import APIRouter, HTTPException, Query, status
 from typing import List, Optional
+from uuid import UUID
 from Models.schemas import ProyectoCreate, EspecieSeleccionItem
 from Services import proyecto_service
 
@@ -30,7 +31,7 @@ router = APIRouter(tags=["Proyectos y Selección"])
 # ══════════════════════════════════════════════
 
 @router.post("/lotes/{lote_id}/proyectos", status_code=status.HTTP_201_CREATED)
-def crear_proyecto(lote_id: str, body: ProyectoCreate):
+def crear_proyecto(lote_id: UUID, body: ProyectoCreate):
     """
     Crea un nuevo proyecto en fase `borrador` para el lote indicado:
     - Asocia el nombre, vivero proveedor, fecha de inicio, patrón de siembra (tresbolillo, cuadrado, rectangular),

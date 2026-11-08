@@ -16,6 +16,7 @@ Cumple con HU-13, HU-14 y HU-15:
 """
 from fastapi import APIRouter, HTTPException, Query, status
 from typing import Optional
+from uuid import UUID
 from Models.schemas import FichaExportCreate
 from Services import especie_service
 
@@ -29,7 +30,7 @@ router = APIRouter(tags=["Especies y Viveros"])
 @router.get("/especies/{especie_id}")
 def obtener_ficha_tecnica(
     especie_id: str,
-    lote_id: Optional[str] = Query(None, description="UUID del lote para calcular los medidores de ajuste agronómico")
+    lote_id: Optional[UUID] = Query(None, description="UUID del lote para calcular los medidores de ajuste agronómico")
 ):
     """
     Retorna la ficha técnica integral de la especie botánica:
@@ -73,7 +74,7 @@ def obtener_protocolo(especie_id: str):
 @router.get("/especies/{especie_id}/stock")
 def obtener_stock(
     especie_id: str,
-    lote_id: Optional[str] = Query(None, description="UUID del lote para ordenar los viveros por cercanía geográfica (ST_Distance)")
+    lote_id: Optional[UUID] = Query(None, description="UUID del lote para ordenar los viveros por cercanía geográfica (ST_Distance)")
 ):
     """
     Consulta la disponibilidad de plántulas de la especie en cada vivero:
