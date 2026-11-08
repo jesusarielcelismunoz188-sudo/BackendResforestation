@@ -4,10 +4,11 @@ Para ejecutar en desarrollo:
 """
 import os
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from Routes.auth import router as auth_router
+from Config.rate_limiter import RateLimitMiddleware
+from Routes.auth import require_authenticated_user, router as auth_router
 from Routes.home import router as home_router
 from Routes.diagnosticos import router as diagnosticos_router
 from Routes.mapa import router as mapa_router
@@ -20,6 +21,9 @@ app = FastAPI(
     description="API para el sistema de reforestación — Diagnóstico, especies y planificación de siembra",
     version="1.0.0",
 )
+
+# Diez solicitudes por segundo por IP; el estado es local a cada proceso.
+app.add_middleware(RateLimitMiddleware, limit=10, window_seconds=1.0)
 
 # ── CORS (para que el frontend pueda consumir la API) ──
 app.add_middleware(
@@ -39,8 +43,9 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(home_router)
-app.include_router(diagnosticos_router)
-app.include_router(mapa_router)
-app.include_router(especies_router)
-app.include_router(proyectos_router)
-app.include_router(cuencas_router)
+protected_route_dependencies = [Depends(require_authenticated_user)]
+app.include_router(diagnosticos_router, dependencies=protected_route_dependencies)
+app.include_router(mapa_router, dependencies=protected_route_dependencies)
+app.include_router(especies_router, dependencies=protected_route_dependencies)
+app.include_router(proyectos_router, dependencies=protected_route_dependencies)
+app.include_router(cuencas_router, dependencies=protected_route_dependencies)

@@ -1,5 +1,5 @@
 """Rutas de autenticación delegadas a Supabase Auth."""
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -27,15 +27,35 @@ async def login(body: LoginRequest):
     return await supabase_auth_service.login(body.email, body.password)
 
 
-@router.get("/me")
-async def get_current_user(
+async def require_authenticated_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
-):
-    """Valida el access token con Supabase y devuelve el usuario autenticado."""
+) -> Any:
+    """Requiere y valida un access token de Supabase."""
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Se requiere un token Bearer válido.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return await supabase_auth_service.get_user(credentials.credentials)
+    try:
+        return await supabase_auth_service.get_user(credentials.credentials)
+    except HTTPException as exc:
+        if exc.status_code in {
+            status.HTTP_400_BAD_REQUEST,
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_403_FORBIDDEN,
+        }:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="El token de acceso no es válido o ha expirado.",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from exc
+        raise
+
+
+@router.get("/me")
+async def get_current_user(
+    user: Any = Depends(require_authenticated_user),
+) -> Any:
+    """Devuelve el usuario asociado al access token de Supabase."""
+    return user
