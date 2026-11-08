@@ -14,6 +14,21 @@ from uuid import UUID
 
 
 # ══════════════════════════════════════════════
+# AUTENTICACIÓN (Supabase Auth)
+# ══════════════════════════════════════════════
+
+class RegisterRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+    password: str = Field(..., min_length=6, max_length=128)
+    full_name: Optional[str] = Field(None, max_length=120)
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+    password: str = Field(..., min_length=1, max_length=128)
+
+
+# ══════════════════════════════════════════════
 # DIAGNÓSTICO
 # ══════════════════════════════════════════════
 
