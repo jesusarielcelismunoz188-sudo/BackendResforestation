@@ -11,6 +11,7 @@ En el patrón MVC, estos son los "Modelos":
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from uuid import UUID
+from datetime import date
 
 
 # ══════════════════════════════════════════════
@@ -26,6 +27,90 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str = Field(..., min_length=3, max_length=254)
     password: str = Field(..., min_length=1, max_length=128)
+
+
+# ══════════════════════════════════════════════
+# HU-02: PREDIOS Y LOTES
+# ══════════════════════════════════════════════
+
+class CoordenadaGPS(BaseModel):
+    lat: float = Field(..., ge=-90, le=90)
+    lng: float = Field(..., ge=-180, le=180)
+
+
+class PredioCreate(BaseModel):
+    nombre: str = Field(..., min_length=2, max_length=200)
+    altitud_msnm: Optional[int] = None
+    ubicacion: CoordenadaGPS
+    descripcion: Optional[str] = None
+
+
+class PredioUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, min_length=2, max_length=200)
+    altitud_msnm: Optional[int] = None
+    ubicacion: Optional[CoordenadaGPS] = None
+    descripcion: Optional[str] = None
+
+
+class LoteCreate(BaseModel):
+    codigo: str = Field(..., min_length=1, max_length=80)
+    nombre: Optional[str] = Field(None, max_length=200)
+    area_ha: Optional[float] = Field(None, gt=0)
+    prioridad: str = Field("media", pattern="^(alta|media|baja)$")
+    altitud_msnm: Optional[int] = None
+    pendiente_grados: Optional[float] = Field(None, ge=0, le=90)
+    ubicacion: Optional[CoordenadaGPS] = None
+    geom: Optional[dict] = None
+    objetivos: List[int] = Field(default_factory=list)
+
+
+class LoteUpdate(BaseModel):
+    codigo: Optional[str] = Field(None, min_length=1, max_length=80)
+    nombre: Optional[str] = Field(None, max_length=200)
+    area_ha: Optional[float] = Field(None, gt=0)
+    prioridad: Optional[str] = Field(None, pattern="^(alta|media|baja)$")
+    altitud_msnm: Optional[int] = None
+    pendiente_grados: Optional[float] = Field(None, ge=0, le=90)
+    ubicacion: Optional[CoordenadaGPS] = None
+    geom: Optional[dict] = None
+
+
+# ══════════════════════════════════════════════
+# HU-03: OBJETIVOS
+# ══════════════════════════════════════════════
+
+class ObjetivosReplace(BaseModel):
+    objetivo_ids: List[int]
+
+
+# ══════════════════════════════════════════════
+# HU-04: MUESTRAS DE SUELO
+# ══════════════════════════════════════════════
+
+class MuestraSueloCreate(BaseModel):
+    ph: float = Field(..., ge=0, le=14)
+    textura_id: Optional[int] = None
+    materia_organica_pct: Optional[float] = Field(None, ge=0, le=100)
+    humedad_retencion_pct: Optional[float] = Field(None, ge=0, le=100)
+
+
+# ══════════════════════════════════════════════
+# HU-19: INSUMOS DE PROYECTO
+# ══════════════════════════════════════════════
+
+class ProyectoInsumoCreate(BaseModel):
+    insumo_id: int = Field(..., gt=0)
+    cantidad: float = Field(..., gt=0)
+    estado: str = Field("pendiente", pattern="^(pendiente|en_transito|en_bodega)$")
+    ubicacion: Optional[str] = None
+    fecha_estimada_llegada: Optional[date] = None
+
+
+class ProyectoInsumoUpdate(BaseModel):
+    cantidad: Optional[float] = Field(None, gt=0)
+    estado: Optional[str] = Field(None, pattern="^(pendiente|en_transito|en_bodega)$")
+    ubicacion: Optional[str] = None
+    fecha_estimada_llegada: Optional[date] = None
 
 
 # ══════════════════════════════════════════════
