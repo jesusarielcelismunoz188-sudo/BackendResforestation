@@ -33,7 +33,7 @@ app.add_middleware(
         origin.strip()
         for origin in os.getenv(
             "CORS_ORIGINS",
-            "http://localhost:3000,http://127.0.0.1:3000",
+            "http://localhost:3000,http://127.0.0.1:3000,https://ecorenace.omag.cloud",
         ).split(",")
         if origin.strip()
     ],
