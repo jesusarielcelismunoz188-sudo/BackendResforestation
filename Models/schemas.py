@@ -8,7 +8,9 @@ En el patrón MVC, estos son los "Modelos":
 - Validan automáticamente (ej: que precipitación tenga 12 valores).
 - Si los datos no cumplen las reglas, FastAPI responde 422 automáticamente.
 """
-from pydantic import BaseModel, Field
+from decimal import Decimal
+
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Optional
 from uuid import UUID
 from datetime import date
@@ -27,6 +29,68 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str = Field(..., min_length=3, max_length=254)
     password: str = Field(..., min_length=1, max_length=128)
+
+
+class GoogleCodeExchangeRequest(BaseModel):
+    code: str = Field(..., min_length=1, max_length=4096)
+    code_verifier: str = Field(
+        ...,
+        min_length=43,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9._~-]+$",
+    )
+
+
+# ══════════════════════════════════════════════
+# ONBOARDING
+# ══════════════════════════════════════════════
+
+class FirstLoteCreate(BaseModel):
+    nombre: str = Field(..., min_length=1, max_length=200)
+    area_ha: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
+
+    @field_validator("nombre")
+    @classmethod
+    def nombre_no_vacio(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("El nombre no puede estar vacío.")
+        return value
+
+
+class PredioOnboardingCreate(BaseModel):
+    nombre: str = Field(..., min_length=1, max_length=200)
+    municipio: str = Field(..., min_length=1, max_length=120)
+    departamento: str = Field(..., min_length=1, max_length=120)
+    area_ha: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
+    primer_lote: FirstLoteCreate
+
+    @field_validator("nombre", "municipio", "departamento")
+    @classmethod
+    def campos_texto_no_vacios(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("El valor no puede estar vacío.")
+        return value
+
+    @model_validator(mode="after")
+    def area_del_primer_lote_valida(self):
+        if self.primer_lote.area_ha > self.area_ha:
+            raise ValueError("El área del primer lote no puede superar la del predio.")
+        return self
+
+
+class LoteOnboardingCreate(BaseModel):
+    nombre: str = Field(..., min_length=1, max_length=200)
+    area_ha: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
+
+    @field_validator("nombre")
+    @classmethod
+    def nombre_no_vacio(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("El nombre no puede estar vacío.")
+        return value
 
 
 # ══════════════════════════════════════════════

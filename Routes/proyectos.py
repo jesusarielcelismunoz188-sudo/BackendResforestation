@@ -17,10 +17,11 @@ en fase `borrador` o `planificacion_activa`.
 │ GET    /proyectos/{id}/seleccion/calculo          │ Cálculo de insumos, área corregida y stock      │
 └───────────────────────────────────────────────────┴─────────────────────────────────────────────────┘
 """
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from typing import List, Optional
 from uuid import UUID
 from Models.schemas import ProyectoCreate, EspecieSeleccionItem
+from Routes.auth import require_authenticated_user
 from Services import proyecto_service
 
 router = APIRouter(tags=["Proyectos y Selección"])
@@ -31,7 +32,11 @@ router = APIRouter(tags=["Proyectos y Selección"])
 # ══════════════════════════════════════════════
 
 @router.post("/lotes/{lote_id}/proyectos", status_code=status.HTTP_201_CREATED)
-def crear_proyecto(lote_id: UUID, body: ProyectoCreate):
+def crear_proyecto(
+    lote_id: UUID,
+    body: ProyectoCreate,
+    user=Depends(require_authenticated_user),
+):
     """
     Crea un nuevo proyecto en fase `borrador` para el lote indicado:
     - Asocia el nombre, vivero proveedor, fecha de inicio, patrón de siembra (tresbolillo, cuadrado, rectangular),
@@ -39,7 +44,9 @@ def crear_proyecto(lote_id: UUID, body: ProyectoCreate):
     - Si no se envía `diagnostico_id`, vincula de forma automática el diagnóstico más reciente del lote.
     """
     try:
-        return proyecto_service.crear_proyecto_borrador(lote_id, body)
+        return proyecto_service.crear_proyecto_borrador(lote_id, body, user["id"])
+    except LookupError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:

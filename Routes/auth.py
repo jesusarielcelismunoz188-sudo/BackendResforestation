@@ -1,10 +1,14 @@
 """Rutas de autenticación delegadas a Supabase Auth."""
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from Models.schemas import LoginRequest, RegisterRequest
+from Models.schemas import (
+    GoogleCodeExchangeRequest,
+    LoginRequest,
+    RegisterRequest,
+)
 from Services import supabase_auth_service
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
@@ -25,6 +29,27 @@ async def register(body: RegisterRequest):
 async def login(body: LoginRequest):
     """Inicia sesión con correo y contraseña mediante Supabase Auth."""
     return await supabase_auth_service.login(body.email, body.password)
+
+
+@router.get("/google")
+async def google_login(
+    code_challenge: str = Query(..., min_length=43, max_length=43),
+):
+    """Devuelve la URL de Supabase Auth para iniciar el flujo OAuth PKCE con Google."""
+    return {
+        "authorization_url": supabase_auth_service.google_authorization_url(
+            code_challenge
+        )
+    }
+
+
+@router.post("/google/callback")
+async def google_callback(body: GoogleCodeExchangeRequest):
+    """Canjea el código PKCE de Supabase por la sesión de la aplicación."""
+    return await supabase_auth_service.exchange_google_code(
+        body.code,
+        body.code_verifier,
+    )
 
 
 async def require_authenticated_user(

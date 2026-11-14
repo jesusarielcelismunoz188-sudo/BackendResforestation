@@ -67,14 +67,28 @@ def _validar_fase_proyecto(cur, proyecto_id: str) -> Dict[str, Any]:
 # CREACIÓN DE PROYECTO (HU-16)
 # ══════════════════════════════════════════════
 
-def crear_proyecto_borrador(lote_id: str, body: ProyectoCreate) -> Dict[str, Any]:
+def crear_proyecto_borrador(
+    lote_id: str,
+    body: ProyectoCreate,
+    user_id: str,
+) -> Dict[str, Any]:
     conn = get_connection()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT id, nombre, codigo FROM lotes WHERE id = %s", (str(lote_id),))
+        cur.execute(
+            """
+            SELECT l.id, l.nombre, l.codigo
+            FROM lotes l
+            JOIN predios p ON p.id = l.predio_id
+            JOIN subcuencas s ON s.id = p.subcuenca_id
+            JOIN cuenca_miembros cm ON cm.cuenca_id = s.cuenca_id
+            WHERE l.id = %s AND cm.perfil_id = %s
+            """,
+            (str(lote_id), str(user_id)),
+        )
         lote = cur.fetchone()
         if not lote:
-            raise ValueError(f"Lote con id '{lote_id}' no encontrado")
+            raise LookupError(f"Lote con id '{lote_id}' no encontrado")
         diag_id = str(body.diagnostico_id) if body.diagnostico_id else None
         if not diag_id:
             cur.execute("""

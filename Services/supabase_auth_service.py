@@ -1,7 +1,8 @@
 """Cliente mínimo para delegar autenticación de usuarios a Supabase Auth."""
 import os
+import re
 from typing import Any, Optional
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 import httpx
 from dotenv import load_dotenv
@@ -53,6 +54,7 @@ async def _request(
     payload: Optional[dict[str, Any]] = None,
     access_token: Optional[str] = None,
     invalid_credentials: bool = False,
+    invalid_credentials_message: str = "Correo o contraseña incorrectos.",
 ) -> Any:
     url, api_key = _settings()
     headers = {"apikey": api_key, "Content-Type": "application/json"}
@@ -86,7 +88,7 @@ async def _request(
     if response.is_error:
         if invalid_credentials and response.status_code in (400, 401):
             error_status = status.HTTP_401_UNAUTHORIZED
-            message = "Correo o contraseña incorrectos."
+            message = invalid_credentials_message
         else:
             error_status = response.status_code
             message = "El servicio de autenticación rechazó la solicitud."
@@ -121,3 +123,57 @@ async def login(email: str, password: str) -> Any:
 
 async def get_user(access_token: str) -> Any:
     return await _request("GET", "/user", access_token=access_token)
+
+
+def google_authorization_url(code_challenge: str) -> str:
+    if not re.fullmatch(r"[A-Za-z0-9_-]{43}", code_challenge):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="El code_challenge de PKCE no tiene un formato válido.",
+        )
+
+    url, _ = _settings()
+    callback_url = os.getenv("FRONTEND_AUTH_CALLBACK_URL", "").strip()
+    if not callback_url:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="La URL de retorno de autenticación no está configurada.",
+        )
+
+    parsed_callback = urlparse(callback_url)
+    if (
+        parsed_callback.scheme not in ("http", "https")
+        or not parsed_callback.hostname
+        or parsed_callback.username
+        or parsed_callback.password
+        or parsed_callback.fragment
+        or (
+            parsed_callback.scheme == "http"
+            and parsed_callback.hostname not in {"localhost", "127.0.0.1", "::1"}
+        )
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="La URL de retorno de autenticación configurada no es válida.",
+        )
+
+    query = urlencode(
+        {
+            "provider": "google",
+            "redirect_to": callback_url,
+            "scopes": "openid email profile",
+            "code_challenge": code_challenge,
+            "code_challenge_method": "s256",
+        }
+    )
+    return f"{url}/auth/v1/authorize?{query}"
+
+
+async def exchange_google_code(code: str, code_verifier: str) -> Any:
+    return await _request(
+        "POST",
+        "/token?grant_type=pkce",
+        payload={"auth_code": code, "code_verifier": code_verifier},
+        invalid_credentials=True,
+        invalid_credentials_message="El código de Google no es válido o expiró.",
+    )

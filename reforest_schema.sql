@@ -100,6 +100,7 @@ create table perfiles (
 create table cuencas (
   id uuid primary key default gen_random_uuid(),
   nombre text not null unique,
+  es_espacio_personal boolean not null default false,
   descripcion text,
   elevacion_msnm integer,
   altitud_min_msnm integer,
@@ -128,6 +129,9 @@ create table predios (
   id uuid primary key default gen_random_uuid(),
   subcuenca_id uuid not null references subcuencas(id) on delete cascade,
   nombre text not null,
+  municipio text,
+  departamento text,
+  area_ha numeric(10,2) check (area_ha > 0),
   descripcion text,
   altitud_msnm integer,
   ubicacion extensions.geometry(Point,4326),
@@ -420,6 +424,7 @@ create table documentos_exportados (
 create index on cuenca_miembros (perfil_id);
 create index on subcuencas (cuenca_id);
 create index on predios (subcuenca_id);
+create index on predios (created_by);
 create index on lotes (predio_id);
 create index on lote_objetivos (objetivo_id);
 create index on zonas_mapa (lote_id);

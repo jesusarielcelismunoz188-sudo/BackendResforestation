@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from Config.rate_limiter import RateLimitMiddleware
 from Routes.auth import require_authenticated_user, router as auth_router
+from Routes.onboarding import router as onboarding_router
 from Routes.home import router as home_router
 from Routes.diagnosticos import router as diagnosticos_router
 from Routes.mapa import router as mapa_router
@@ -43,6 +44,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(home_router)
+app.include_router(onboarding_router)
 protected_route_dependencies = [Depends(require_authenticated_user)]
 app.include_router(diagnosticos_router, dependencies=protected_route_dependencies)
 app.include_router(mapa_router, dependencies=protected_route_dependencies)
