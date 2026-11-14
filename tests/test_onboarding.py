@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from Models.schemas import PredioOnboardingCreate
 from Routes.auth import require_authenticated_user
-from Routes.onboarding import router
+from Routes.onboarding import onboarding_lotes_router, router
 from Services import onboarding_service
 
 
@@ -16,6 +16,7 @@ class OnboardingRouteTests(unittest.TestCase):
         self.app = FastAPI()
         self.user = {"id": str(uuid4()), "email": "person@example.com"}
         self.app.include_router(router)
+        self.app.include_router(onboarding_lotes_router)
         self.app.dependency_overrides[require_authenticated_user] = lambda: self.user
         self.client = TestClient(self.app)
 
