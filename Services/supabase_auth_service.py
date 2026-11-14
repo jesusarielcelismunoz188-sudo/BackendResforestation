@@ -133,7 +133,7 @@ def google_authorization_url(code_challenge: str) -> str:
         )
 
     url, _ = _settings()
-    callback_url = os.getenv("FRONTEND_AUTH_CALLBACK_URL", "").strip()
+    callback_url = "https://ecorenace.omag.cloud/auth/callback"
     if not callback_url:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
