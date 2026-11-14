@@ -1,10 +1,16 @@
 """Persistencia de los espacios personales creados durante el onboarding."""
 from decimal import Decimal
+import json
 from typing import Any, Optional
 from uuid import UUID, uuid4
 
 from Config.database import get_connection, serialize_row, serialize_rows
-from Models.schemas import LoteOnboardingCreate, PredioOnboardingCreate
+from Models.schemas import (
+    CoordenadaGPS,
+    GeoJSONPolygon,
+    LoteOnboardingCreate,
+    PredioOnboardingCreate,
+)
 
 
 def _user_id(user: dict[str, Any]) -> str:
@@ -83,14 +89,45 @@ def _new_lote(
     predio_id: str,
     nombre: str,
     area_ha: Decimal,
+    ubicacion: Optional[CoordenadaGPS] = None,
+    geom: Optional[GeoJSONPolygon] = None,
 ) -> dict[str, Any]:
+    longitude = ubicacion.lng if ubicacion else None
+    latitude = ubicacion.lat if ubicacion else None
+    geometry = json.dumps(geom.model_dump(mode="json")) if geom else None
     cur.execute(
         """
-        INSERT INTO lotes (predio_id, codigo, nombre, area_ha)
-        VALUES (%s, %s, %s, %s)
-        RETURNING id, predio_id, nombre, area_ha
+        INSERT INTO lotes (
+            predio_id, codigo, nombre, area_ha, ubicacion, geom
+        )
+        VALUES (
+            %s, %s, %s, %s,
+            CASE WHEN %s::double precision IS NOT NULL
+                 THEN extensions.ST_SetSRID(
+                     extensions.ST_MakePoint(%s, %s), 4326
+                 )
+            END,
+            CASE WHEN %s::text IS NOT NULL
+                 THEN extensions.ST_SetSRID(
+                     extensions.ST_GeomFromGeoJSON(%s), 4326
+                 )
+            END
+        )
+        RETURNING id, predio_id, nombre, area_ha,
+                  extensions.ST_AsGeoJSON(ubicacion)::json AS ubicacion,
+                  extensions.ST_AsGeoJSON(geom)::json AS geom
         """,
-        (predio_id, f"ONB-{uuid4().hex}", nombre, area_ha),
+        (
+            predio_id,
+            f"ONB-{uuid4().hex}",
+            nombre,
+            area_ha,
+            longitude,
+            longitude,
+            latitude,
+            geometry,
+            geometry,
+        ),
     )
     return serialize_row(cur.fetchone())
 
@@ -110,10 +147,20 @@ def create_predio(body: PredioOnboardingCreate, user: dict[str, Any]) -> dict[st
         cur.execute(
             """
             INSERT INTO predios (
-                subcuenca_id, nombre, municipio, departamento, area_ha, created_by
+                subcuenca_id, nombre, municipio, departamento, area_ha,
+                ubicacion, created_by
             )
-            VALUES (%s, %s, %s, %s, %s, %s)
-            RETURNING id, nombre, municipio, departamento, area_ha
+            VALUES (
+                %s, %s, %s, %s, %s,
+                CASE WHEN %s::double precision IS NOT NULL
+                     THEN extensions.ST_SetSRID(
+                         extensions.ST_MakePoint(%s, %s), 4326
+                     )
+                END,
+                %s
+            )
+            RETURNING id, nombre, municipio, departamento, area_ha,
+                      extensions.ST_AsGeoJSON(ubicacion)::json AS ubicacion
             """,
             (
                 subcuenca_id,
@@ -121,6 +168,9 @@ def create_predio(body: PredioOnboardingCreate, user: dict[str, Any]) -> dict[st
                 body.municipio,
                 body.departamento,
                 body.area_ha,
+                body.ubicacion.lng if body.ubicacion else None,
+                body.ubicacion.lng if body.ubicacion else None,
+                body.ubicacion.lat if body.ubicacion else None,
                 user_id,
             ),
         )
@@ -130,6 +180,8 @@ def create_predio(body: PredioOnboardingCreate, user: dict[str, Any]) -> dict[st
             predio["id"],
             body.primer_lote.nombre,
             body.primer_lote.area_ha,
+            body.primer_lote.ubicacion,
+            body.primer_lote.geom,
         )
         lote.update(
             {
@@ -155,7 +207,10 @@ def list_lotes(user: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
         cur.execute(
             """
             SELECT l.id, COALESCE(l.nombre, l.codigo) AS nombre, l.predio_id,
-                   p.nombre AS predio_nombre, l.area_ha, p.municipio, p.departamento
+                   p.nombre AS predio_nombre, l.area_ha, p.municipio, p.departamento,
+                   extensions.ST_AsGeoJSON(p.ubicacion)::json AS predio_ubicacion,
+                   extensions.ST_AsGeoJSON(l.ubicacion)::json AS ubicacion,
+                   extensions.ST_AsGeoJSON(l.geom)::json AS geom
             FROM lotes l
             JOIN predios p ON p.id = l.predio_id
             JOIN subcuencas s ON s.id = p.subcuenca_id
@@ -196,7 +251,14 @@ def create_lote(
         if predio["area_ha"] is not None and body.area_ha > predio["area_ha"]:
             raise ValueError("El área del lote no puede superar la del predio.")
 
-        lote = _new_lote(cur, str(predio["id"]), body.nombre, body.area_ha)
+        lote = _new_lote(
+            cur,
+            str(predio["id"]),
+            body.nombre,
+            body.area_ha,
+            body.ubicacion,
+            body.geom,
+        )
         lote.update(
             {
                 "predio_nombre": predio["nombre"],

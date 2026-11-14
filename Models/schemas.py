@@ -9,9 +9,9 @@ En el patrón MVC, estos son los "Modelos":
 - Si los datos no cumplen las reglas, FastAPI responde 422 automáticamente.
 """
 from decimal import Decimal
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import List, Optional
 from uuid import UUID
 from datetime import date
 
@@ -45,9 +45,38 @@ class GoogleCodeExchangeRequest(BaseModel):
 # ONBOARDING
 # ══════════════════════════════════════════════
 
+class CoordenadaGPS(BaseModel):
+    lat: float = Field(..., ge=-90, le=90, allow_inf_nan=False)
+    lng: float = Field(..., ge=-180, le=180, allow_inf_nan=False)
+
+
+class GeoJSONPolygon(BaseModel):
+    type: Literal["Polygon"]
+    coordinates: list[list[tuple[float, float]]]
+
+    @model_validator(mode="after")
+    def validate_rings(self):
+        if not self.coordinates:
+            raise ValueError("El polígono debe incluir al menos un anillo.")
+        for ring in self.coordinates:
+            if len(ring) < 4:
+                raise ValueError("Cada anillo debe tener al menos cuatro coordenadas.")
+            if ring[0] != ring[-1]:
+                raise ValueError("El anillo del polígono debe estar cerrado.")
+            for longitude, latitude in ring:
+                if not -180 <= longitude <= 180 or not -90 <= latitude <= 90:
+                    raise ValueError(
+                        "Las coordenadas GeoJSON deben usar [longitud, latitud] "
+                        "dentro del rango geográfico válido."
+                    )
+        return self
+
+
 class FirstLoteCreate(BaseModel):
     nombre: str = Field(..., min_length=1, max_length=200)
     area_ha: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
+    ubicacion: Optional[CoordenadaGPS] = None
+    geom: Optional[GeoJSONPolygon] = None
 
     @field_validator("nombre")
     @classmethod
@@ -63,6 +92,7 @@ class PredioOnboardingCreate(BaseModel):
     municipio: str = Field(..., min_length=1, max_length=120)
     departamento: str = Field(..., min_length=1, max_length=120)
     area_ha: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
+    ubicacion: Optional[CoordenadaGPS] = None
     primer_lote: FirstLoteCreate
 
     @field_validator("nombre", "municipio", "departamento")
@@ -83,6 +113,8 @@ class PredioOnboardingCreate(BaseModel):
 class LoteOnboardingCreate(BaseModel):
     nombre: str = Field(..., min_length=1, max_length=200)
     area_ha: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
+    ubicacion: Optional[CoordenadaGPS] = None
+    geom: Optional[GeoJSONPolygon] = None
 
     @field_validator("nombre")
     @classmethod
@@ -96,11 +128,6 @@ class LoteOnboardingCreate(BaseModel):
 # ══════════════════════════════════════════════
 # HU-02: PREDIOS Y LOTES
 # ══════════════════════════════════════════════
-
-class CoordenadaGPS(BaseModel):
-    lat: float = Field(..., ge=-90, le=90)
-    lng: float = Field(..., ge=-180, le=180)
-
 
 class PredioCreate(BaseModel):
     nombre: str = Field(..., min_length=2, max_length=200)
